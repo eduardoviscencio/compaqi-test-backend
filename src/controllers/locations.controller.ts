@@ -65,11 +65,17 @@ export const deleteLocation = async (req: TypedRequest, res: TypedResponse) => {
   try {
     const { id } = req.params;
 
-    const deletedLocation = await Location.findByIdAndDelete(id);
+    const locationToDelete = await Location.findById(id);
 
-    if (!deletedLocation) {
+    if (!locationToDelete) {
       return res.status(404).json({ ok: false, message: "Location not found" });
     }
+
+    if (locationToDelete.sub !== req.user?.sub) {
+      return res.status(403).json({ ok: false, message: "Forbidden" });
+    }
+
+    await Location.deleteOne({ _id: id });
 
     res.status(200).json({ ok: true });
   } catch (error) {
