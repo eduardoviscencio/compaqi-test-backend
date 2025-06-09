@@ -1,6 +1,6 @@
 # COMPAQi Test Backend - Locations API
 
-A TypeScript-based REST API for managing user locations with JWT authentication and MongoDB storage.
+A public TypeScript-based REST API for managing user locations with Google OAuth JWT authentication and MongoDB storage.
 
 ## Architecture Overview
 
@@ -25,7 +25,7 @@ This application follows a layered MVC (Model-View-Controller) architecture patt
 - **Runtime**: Node.js with TypeScript
 - **Framework**: Express.js
 - **Database**: MongoDB with Mongoose ODM
-- **Authentication**: JWT (JSON Web Tokens)
+- **Authentication**: Google OAuth JWT (JSON Web Tokens)
 - **Validation**: Express Validator
 - **Development**: ts-node-dev for hot reloading
 
@@ -93,9 +93,10 @@ src/
 ### 5. Middleware
 
 - **Authentication** (`handleAuthorization.ts`):
-  - Validates JWT tokens from Authorization header
-  - Extracts user information and attaches to request
+  - Validates Google OAuth JWT tokens from Authorization header
+  - Extracts user information (`sub`, `email`) and attaches to request
   - Returns 401 for invalid/missing tokens
+  - Requires token to have Google OAuth structure with `sub` and `email` claims
 - **Validation** (`validateFields.ts`):
   - Uses express-validator for request validation
   - Returns structured error messages for invalid fields
@@ -105,7 +106,8 @@ src/
 - **GET** `/api/locations` - Fetch all locations
 - **POST** `/api/locations` - Create new location (with validation)
 - **DELETE** `/api/locations/:id` - Delete location by ID
-- All routes protected by JWT authentication middleware
+- All routes are publicly accessible but require Google OAuth JWT authentication
+- Users can add, update, and delete locations if their token contains valid Google OAuth structure
 
 ### 7. Type System
 
@@ -118,26 +120,33 @@ Strong TypeScript typing throughout:
 
 ## Authentication Flow
 
-1. Client sends request with `Authorization: Bearer <token>` header
+1. Client sends request with `Authorization: Bearer <google_oauth_token>` header
 2. `handleAuthorization` middleware intercepts request
-3. Token is extracted and decoded (not verified - assuming external verification)
-4. User information (`sub`, `email`) extracted from token payload
-5. User data attached to request object for controller access
-6. Request proceeds to controller if authentication succeeds
+3. Google OAuth token is extracted and decoded (not verified - assuming external verification)
+4. User information (`sub`, `email`) extracted from Google OAuth token payload
+5. Token must have valid Google OAuth structure with required claims
+6. User data attached to request object for controller access
+7. Request proceeds to controller if authentication succeeds
+
+**Required Token Structure:**
+The JWT token must contain the following Google OAuth claims:
+
+- `sub`: Google user subject identifier
+- `email`: User's email address from Google account
 
 ## Data Flow
 
 ### Fetching Locations:
 
 1. GET request to `/api/locations`
-2. Authentication middleware validates token
+2. Authentication middleware validates Google OAuth token
 3. Controller queries all locations from database
 4. Locations array returned in response
 
 ### Creating a Location:
 
 1. POST request to `/api/locations` with location data
-2. Authentication middleware validates JWT token
+2. Authentication middleware validates Google OAuth JWT token
 3. Field validation middleware checks required fields
 4. Controller extracts user info from token and location data from body
 5. New Location document created with user association
@@ -147,7 +156,7 @@ Strong TypeScript typing throughout:
 ### Deleting a Location:
 
 1. DELETE request to `/api/locations/:id` with location ID in URL params
-2. Authentication middleware validates JWT token
+2. Authentication middleware validates Google OAuth JWT token
 3. Controller extracts location ID from request parameters
 4. Location document searched and deleted from MongoDB using `findByIdAndDelete`
 5. If location not found, 404 error returned
@@ -162,10 +171,11 @@ Required environment variables:
 
 ## Security Features
 
-- JWT-based authentication on all endpoints
+- Google OAuth JWT-based authentication on all endpoints
 - Input validation using express-validator
 - CORS enabled for cross-origin requests
 - Structured error handling without exposing internal details
+- Public API accessible to any client with valid Google OAuth tokens
 
 ## Development Scripts
 
